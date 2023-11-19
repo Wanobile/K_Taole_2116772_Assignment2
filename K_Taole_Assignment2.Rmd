@@ -1,0 +1,190 @@
+---
+title: "Precipitation Hotspot Detection in Switzerland using Gesotatistical Methods"
+author: "Kutlwano Taole"
+date: "`2023-11-17`"
+output:
+  html_document:
+    
+    theme: journal
+    toc: yes
+    toc_depth: 2
+    lof: true
+    number_section: true
+  pdf_document:
+    toc: yes
+bibliography: ref.bib
+csl: apa.csl
+---
+
+<style>
+body{
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(dev = 'pdf')
+
+repos <- "https://cran.r-project.org"
+url <- utils::contrib.url(repos, "source")
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("fields")
+#install.packages("geoR")
+#install.packages("gstat")
+#install.packages("spam")
+library(geoR)
+library(fields)
+library(gstat)
+library(spam)
+```
+\listoffigures
+# Background
+
+### Introduction 
+
+Geostatistics is a specialized field and an amalgamation of Geographic Information System, Statistics, Mathematics and Engineering. It was initially developed for mining but has, over the year, it has been applied to many more fields. The disciple has placed a new perspective and emphasis on how we look at and study data, specifically spatial data. It is, in a huge way, a step up from GIS and statistical analysis of stationary and continuous spatial datasets. With analytical tools such as variogram analysis and interpolation techniques such as kriging, the discipline has placed a new found accuracy on studying spatial data. Variogram analysis brings about a high level of studying spatial dependency/ autocorrelation between points and the ability to use variogram models has increased the way we view the subsequent interpolation process. Variogram model fitting has, even more so, increased the accuracy of finding the ideal variogram by using statistical techniques such as ordinary least squares fitting, weighted least squares and maximum likelihood. This then means that the interpolation analysis of the dataset will be, to a greater extent, more accurate. Kriging is a great interpolation method used in geostatistics because it focuses a great deal on spatial dependency and because of this, it is a robust technique to use. It is used to predict unknown values/ locations based off of know/ observed values in a particular location. The interpolation method is ideal because not only does it give you a smooth measure of autocorrelation, it also gives you a measure of uncertainty pertaining to the predicted values which means that it gives you an estimate of the overall prediction variance/ kriging variance.
+
+Given these advantages, it is evident why geostatistics has been used in a multitude of fields, such as mining for predicting deposits of mineral ore or in climate studies for predicting precipitation trends over an area. As a measure of the robustness and varying applicability of geostatistical methods, this project will use these methods to predict hotspot locations of precipitation over Switzerland over a 1986 May dataset. The goal being to determine key hotspot areas that might be heavily affected and/or susceptible to precipitation events such as floods, land slides and even possible dry spells. Using geostatistics, the advantage of the studying being to accurately map these areas so as to have the knowledge to make intentional and well thought out decisions based on statistical accuracy. 
+
+
+###	Geostatistics 
+
+Spatial data is known as data that consists of values obtained at known geographical locations with a region [@kim2015estimation]. Spatial statistics is concerned with continuous spatial phenomena and their spatial variations [@diggle_introduction_2003; @kim2015estimation].  Within spatial statistics, emerged geostatistics. Geostatistics is then a branch of spatial statistics which materialized in the early 1980’s. It offers a way to analyse spatial phenomena that varies across space, describing spatial continuity and ultimately deals with spatially autocorrelated data [@bohling_introduction_2005]. The field was developed in South Africa as an amalgamation of geology, statistics, engineering, and mathematics, with the practical concerns of geology and mining research in mind [@floch_spatial_2018]. It was headed by Danie Krige for the detection and estimation of mineral ore reserves and further cemented by the statistical applications driven by Georges Matheron and his team in the 1960's [@kim2015estimation; @floch_spatial_2018]. Today, the field can and has been applied to disciplines such as epidemiology, astronomy and environmental science [@kim2015estimation]. This is because of the multifaceted functionality within field due to the tools and techniques it encompasses. These tools and techniques include the possibility of studying complex spatial relations with semi-variograms, and the ability for data interpolation, which brings about robust predictions of values in unknown locations, using the kriging method [@floch_spatial_2018].  
+
+At its core, the central problem in geostatistics and geostatistical data is to use known/ observed values to predict unknown/ unobserved values in a region [@kim2015estimation]. This can be achieved in three stages which include estimating a variogram based on the data, having a sample variogram and fitting the theoretical variogram onto it and finally, using the fitted variogram model to predict values at specified locations [@kim2015estimation]. As a result of the continuous nature and relationality of the data that is worked with in geostatistics, it is then important to realize that there are influential observations that would ultimately result in the analysis of the data being majorly affected [@kim2015estimation]. These influential observations are called outliers and are small or large values that are hugely outside the realm of the normal range of the dataset and tend to have a negative influence on the analysis of the data [@kim2015estimation]. It is then important to use methods to that will detect and clean out the outliers in order to create accurate variogram models and in turn, accurate kriging results [@kim2015estimation]. 
+
+The ability for geostatistics to perform intense and robust spatial data analysis as well as to interpolate the data to get unknown values is an important aspect as it aids in analysis of areas where the dataset collected is too large, and alternatively, if there is a lack of good quality spatial and temporal resolutions of the data collected. Geostatistics also allows of the adaptation of data to be used is simulations and estimations which allow for broader studies in controlled environments and with varying parameters for the purpose of thoroughly and effectively investigate all possibilities within the study area. 
+
+###	Swiss study area
+
+Precipitation trends in Switzerland vary according to location. According to the Federal Office of Meteorology and Climatology, MeteoSwiss, the highest annual precipitation is observed in the Alps and Alpine foothills which are found on the south side of the Alps, across the western peaks of Jura [@noauthor_climate_nodate]. These regions have average precipitation records of around 2000mm, compared to the northern plateau which experiences an average of around 1000 to 1500mm of rain per year [@noauthor_climate_nodate]. The Apls act as climatic divider between the north and south which creates a drastic variation in climate [@noauthor_climate_nodate]. The inner Alpine valley are protected against hot air masses and therefore experience dry conditions which result in about 550 to 700mm annual precipitation [@noauthor_climate_nodate]. This includes the southwestern and the southeastern side of Switzerland [@noauthor_climate_nodate]. Additionally, Switzerland experiences more precipitation events in the summer months than in the winter months [@noauthor_climate_nodate]. 
+
+![Study area map (https://za.pinterest.com/pin/625507835716809509/)](swiss_map.jpg)
+
+###	Importance of Precipitation Studies
+
+The importance of precipitation analysis and hotspot studies lies in the decisions and active actions that can be taken as a result of precise results and interpretations. Rainfall analysis aids in the investigation of phenomena such as streamflow, surface and ground water supplies, flood possibilities and flood plain and landslide predictions and mapping, as well as agricultural implications and effects and severe droughts [@yang_yang_extreme_2017]. 
+
+###	Study Problem 
+
+In Switzerland, the main purpose of precipitation studies has been to keep track of climate change to predict and map rainfall erosivity leading to soil erosion [@meusburger_spatial_2012]. This is due to the fact that a great majority of land use areas are found in the plateaus and soil erosion due to intense precipitation can lead to sediment buildup in low-lying areas. This not only results in soil laden water flowing downstream which ultimately leads to blockages of rivers and streams, it also becomes a drastic problem as most land use changes occur in these plateaus [@meusburger_spatial_2012]. 
+Moreover, multiple studies have concluded that heavy rain and hail have been major natural hazards in Switzerland leading to intense floods, landslides and property damage due to hail storms [@schiesser_mesoscale_1995].  It is then important to identify these areas using the Swiss rainfall readings in order to map precipitation hotspots in the area, which will ultimately inform decision making when it comes to mitigation strategies of the effects of downstream soil erosion as well as other precipitation related negative effects. 
+
+### Expolatory Data Analysis
+
+When looking at point patterns, it is essential to first identify and explore the spatial point patterns of the data, its clustering or regularity and its spatial randomness [@kim2015estimation]. Exploratory data analysis is an essential part of statistical inference, it entails the idea to clarify and understand the structure and nature of the dataset [@chatfield_exploratory_1986]. It includes checking the quality of the dataset, visualizing the spatial dataset and its patterns, examining the distribution and spatial autocorrelation of the data as well as identifying possible outliers [@chatfield_exploratory_1986]. This includes plotting appropriate graphs such as histograms and box-and-whisker plots which speak to the frequency distribution of the data [@chatfield_exploratory_1986]. All of this to prepare the data for sophisticated analysis. 
+
+### Dataset
+
+The data used in this project is found in the GeoR package, contained in the R statistical computing software [@refr]. It was provided by Giovanni Graziani from the Environment Institute of the Joint Research Centre in Ispra Italy which the country border data was extracted from ESRI’s Digital Chart of the World (DCW) [@dubois_spatial_2003].The package contains a number of datasets, including 100 measured daily rainfall events in Switzerland on the 8th of May, 1986 [@dubois_spatial_2003; @floch_spatial_2018]. These 100 observations were extracted from a total dataset of 467 measurements of which 367 of the remaining values needed to be estimated [@dubois_spatial_2003; @floch_spatial_2018]. When using the dataset, the sic.100 variable represents the observed values while sic.367 represents the estimated values.
+
+
+
+![Measured and Estimated Locations](scatterplot.jpg)
+
+
+
+Geostatistical analysis methods are made ideal when the data is normally distributed and stationary [@bohling_introduction_2005]. Deviations from this idea causes inaccuracies in the analysis and interpretation of the data. It is then paramount to visualize the dataset before any sophisticated analysis. This can best be done by looking at graphs such as histograms, box-and-whisker plots and variogram clouds to check for the normality of the data [@ploner_use_1999; @bohling_introduction_2005]. 
+
+
+![Raw Data Exploratory Analysis](eda.jpg)
+
+
+![Raw Data Box-and-Whisker Plot](baw.jpg)
+
+![Raw Data Variogram Cloud](rawvarcloud.jpg)
+
+
+The Swiss dataset visual summary indicates the observations at different locations as well as assigns different colours and shapes to differentiate between the different quartiles the data is in (Top left). The coordinates are then visualized in the Top right and Bottom left against the X and Y coordinates, respectively. The data, based on the histogram in the Bottom right, also indicates skewness and therefore does not have a normal density/ Gaussian distribution, this is also indicated by the box-and-whisker plots and the variogram cloud. The variogram cloud also shows the presence of large influential outliers.
+
+# Geostatistical Methods Used
+
+### Variogram
+
+There were a number of statistical methods used to analyse and interpret this data and one of them is the variogram. The variogram can be defined as the “second moment structure of a spatial stochastic process” [@diggle_introduction_2003: 14]. It measures the degree of spatial dependence/ autocorrelation in a dataset [@diggle_introduction_2003; @floch_spatial_2018]. The general shape of the variogram encompasses an initial increasing trend which tapers off when it reaches a plateau [@diggle_introduction_2003; @floch_spatial_2018]. This plateau is called the range of the variogram and marks the point of spatial dependence, which is the point at which there is no longer a relationship between the observations and therefore assumes a constant value [@floch_spatial_2018]. Ultimately, the variogram helps to create an understanding of how values at different locations interact and relate to one another [@kim2015estimation; @floch_spatial_2018].
+
+Geostatistics works with semi-variograms which essentially average out the squared differences of a variable, and are therefore a measure of how values at different locations differ, and tend to filter out the effect of a spatially varying mean [@floch_spatial_2018]. Fitting the theoretical variogram to a sample variogram is an important part of the statistical analysis process. One needs to fit a variogram model that represents the best dependence of the data (autocorrelation) [@bohling_introduction_2005; @kim2015estimation; @floch_spatial_2018]. Fitting can be done either by eye to eye method, ordinary least squares method or by maximum likelihood [@morgan_analysing_2005; @floch_spatial_2018]. Variogram models consists of the sill, the range and the nugget. The sill is the value at which the variogram levels off, the range is the lag distance at which the semi-variogram reaches the range and the nugget is the limit of the variogram at zero [@bohling_introduction_2005; @floch_spatial_2018]. A change in the nugget parameters (nugget effect) represents the displacement at the origin (zero) due to local variation/small scale variation [@bohling_introduction_2005; @floch_spatial_2018]. 
+
+Ultimately, the selected model affects the overall prediction of unknown values based on its shape [@kim2015estimation]. For example, the shape of the model near the origin influences the relationship of the prediction, the steeper the curve at the origin, the more influential the nearest neighbours will be [@kim2015estimation]. 
+
+It if for these key characteristics of variograms, that they were used in this project. They were used to help understand the spatial dependence and autocorrelation of my dataset in a more robust way, they provide valuable insight into the spatial structure of, and variability within, my dataset and they provide statistical specifications which help in describing the true nature and scale of spatial variability in my dataset. Moreover, they are crucial for kriging interpolation which will ultimately use the spatial correlation and relationships assessed in the variogram to predict values that are unknown. This is why it is then essential that the correct variogram model is chosen for kriging and in order to determine which model is the best fit, you need to first fit them onto the sample variogram and choose the closest fit. They will then aid in the subsequent uncertainty estimations and model validations that make for good statistical interpretation.
+
+
+
+![Raw Data Variogram](rawvariogram.jpg)
+
+![Raw Data Variogram Model Fitting](variomodel.jpg)
+
+###	Kriging
+
+Ordinary kriging is the most widely used kriging method in geostatistics and is what this projected used for analysis because it has been proven to have the best linear unbiased estimator, meaning it provides the best most accurate estimates [@floch_spatial_2018]. It is by definition an interpolation method which is a technique that allows for the prediction of unknown values based off of known values in a specific location [@floch_spatial_2018]. It uses a weighted linear combination of the observed/known samples to predict nearby unobserved/unknown locations [oliver_tutorial_2014]. The weights are chosen so as to ensure an error average of zero which will minimize the error variance of the kriging model. Unlike extrapolation methods, kriging provides a visible smooth transition between observed and unobserved areas which will be valuable in this project [oliver_tutorial_2014; @floch_spatial_2018]. 
+
+
+
+![Variogram Model 1](raw estimate.jpg){style="width:50%; display:inline-block;"}
+![Variogram Model 2](rawvariance.jpg){style="width:50%; display:inline-block;"}
+
+# Analysis and Interpretation 
+
+For an initial analysis, much like with the exploratory data analysis, using the raw data and all the observed values, an experimental variogram was created. This is for the benefit of seeing what the a variogram using raw data looks like as well as to see which variogram model would best fit the variogram. Different variogram models were then fitted onto the variogram to determine which is the best fit as indicated in figure… Based on the raw data, the spherical variogram model looks to be the best fit as it covers and goes over a majority of the variogram. With this information, a kriging model was developed. This model shows the difference/ comparison between the estimated value’s kriging and the predicted value’s kriging model using the spherical model.  The estimated values show that there is more/ heavier rainfall on the north western and mid-south eastern parts of the country. 
+
+This, based on the topographic map of the country coincides with the areas with the most streams and lakes and also resonates with the Swiss Federal Authorities findings that these areas receive the most rainfall while areas with blue kriging results indicate drier conditions. This is different however from the predicted kriging model which indicated sporadic events of rainfall and dryness across the country. This contrast in results can also be seen in the quantile-quantile plots where the sample/ observed values show that the distribution does not deviate too much from normality whereas the control sample plot varies drastically. 
+
+This inaccuracy in results is the result of the dataset’s deviation from normality. Kriging assumes a linearity rule which means that data needs to obey a gaussian distribution in order to reach high model accuracy. In order to reach this accuracy and correct for normality, data transformation needs to be done. Data transformation can either be logarithmic or Box-Cox. This project has used the log transformation to correct the dataset. 
+
+
+
+![Transformed Data Exploratory Analysis](transeda.jpg)
+
+
+Similar to the raw data exploration, the Swiss dataset visual summary indicates the observations at different locations as well as assigns different colours and shapes to differentiate between the different quartiles the data is in (Top left). The coordinates are then visualized in the Top right and Bottom left against the X and Y coordinates, respectively. The data, based on the histogram in the Bottom right, has now been corrected and represents a normal density/ Gaussian distribution. 
+
+After transformation, the variogram is then fitted again to a variogram model. Now, the Matern variogram model seemingly represents the best fit. And this is represented in the kriging variance and how well it now resembles the estimation kriging. There are a few discrepancies but overall, the model is a good fit. We can further see an improvement from the raw data to the transformed based on the RMSE. The raw data RMSE was 62.3 and the transformed data RMSE is 56.2. This means that there is a smaller error on the transformed data than the raw data, meaning that the transformed data is more accurate representation of the predicated values. 
+
+
+
+![Transformed Data Variogram](trnsvariogram.jpg) ![Transformed Data Variogram Model Fitting](trannaternvario.jpg)
+
+
+We then further want to see how other kriging models would look in comparison to the estimated kriging and possibly determine if we could find a more fitting variogram model just based on the kriging models themselves. This is skipping a crucial step in the process but the idea is to determine if, before fitting the variogram and the outcome of that analysis being bias, especially when the models are close fits, can we see the kriging intensity in the kriging models first. 
+
+![Transformed Data Exponential Variogram Model](expokrig.jpg)
+![Transformed Data Spherical Variogram Model](sphekrig.jpg)
+![Transformed Data Gaussian Variogram Model](gausskrig.jpg)
+![Transformed Data Matern Variogram Model](materkrig.jpg)
+
+
+
+The spherical and the exponential kriging models produced very similar models to those of the estimation, the exponential model more so. The exponential model seems to have a better fit than even the Matern model. The Gaussian model seems to have over corrected and is the least fitting model of the models we tested. This is because the data has already been transformed to a normal distribution and using this model will then over correct the dataset. This is also evident in the variograms that were then created using the maximum likelihood and the weighted least squares methods of determining model fit and then compared to each other.
+
+
+![Weighted Least Squares Camparative Variogram Models](wls.jpg)
+
+Transformed Data Exponential Variogram Model
+
+### Cross Validation 
+
+Cross validation of the data, which is a method of validating the accuracy of the predicated values based on separating the dataset into a training dataset and a testing dataset (Wanf et al, 2023). This helps detect the overall fit and how well the model preforms. The CV of the exponential model was then conducted and  the cv returned as 0.72 indicating that the model has a 72% prediction rate. The exponential variogram was used in the cross validation as it was proved to be the best fitting model overall. 
+
+# Conclusion
+
+The overall result of the project indicated that the exponential variogram is the model for this dataset. This was concluded after exploring the dataset that we were given and performing some analysis on it which included variogram modelling, fitting and then eventually, a kriging model which compared the difference between the original observed points and the predictions from the raw data. This analysis however proved to be majorly incorrect as kriging demands and obeys a normality law. With this in mind, the data was then transformed in order to achieve a normal distribution/ Gaussian distribution. This correction of the data made it so we have more accurate prediction results and this drastic change in data structure can clearly be seen in the histogram created from the transformed data. The correction is further evident in the rmse of the two datasets, where the rmse for the raw data was much larger than that of the transformed data. This indicates that a correction has been made and that a more accurate analyse can be made using the transformed dataset. Furthermore, the kriging models that were produced from the transformed dataset were more in line in terms of accuracy, with the observed estimates. The variogram fits were very close and this is seen in the comparison of the variograms as well as in the interpolation of the data. 
+
+Although they were all a close fit, the exponential variogram was the best out of them. This is seen both when first creating a variogram to compare to the observed values kriging model and when eventually,  the right steps were followed and a variogram mfir was done. The variogram fits were done by the process of elimination as well as by using the weight least squares and the maximum likelihood methods and the results were all the same. They indicated that the exponential variogram was the best fitting model. Additionally, cross validation was done using the weight least squares method and found that the model accuracy of the exponential variogram is 0.72, indicating that this model accurately predicted 72% of the variables correctly. 
+
+The purpose of this project was to determine key areas of the country which received the most rainfall in of May 1986 and to then map possible intense precipitation event susceptible areas in the country. Based on the predictions made, we can say that the assessment of the Swiss Federal Authorities was correct about where the most rainfall happens and which areas are most affected, or could be affected in the future with things such as floods and landslides as a result of both the rainfall amount as well as the topography of the country. We have proven this using geostatistical methods of variogram analysis and kriging which were not used in their study. This information can then, supplemented with their own findings, be used to make informed decisions about possible flood events or soil erosion impacts on affected areas and mitigation strategies. 
+
+###	Limitations of the Study
+
+The major limitations of this study was finding the appropriate codes and functions to make the analysis clearer and more concise. The dataset was also an issue as it I had to use the R package to do all the analysis whereas I would have preferred to have a csv file of the data to work from. That would have made calling on the dataset when running the codes a lot easier. 
+
+In terms of improvements, I would have liked to do more comparisons with different techniques and even try out some machine learning algorithms to see how drastic of a difference they would have made to the results of the methods used in this project. 
+
+# References
+
+---
+
+
